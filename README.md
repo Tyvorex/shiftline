@@ -11,7 +11,7 @@ Use the GitHub Pages link in this repository's deployment settings. A modern des
 - WASD or arrow keys: accelerate, brake/reverse and steer
 - Space: handbrake
 - Shift: slow-time car switching view
-- Click another car, or Tab to choose and E to enter
+- In Shift view, move the mouse away from center to pan the aerial camera. Bring a car under the center crosshair, then click to enter. E also confirms the aimed target.
 - C: cycle three camera views
 - R: recover to a nearby road
 - M: full map. Click it to set a waypoint
@@ -33,7 +33,7 @@ The starting-ride selector offers all 20 models. Mobile has basic steering and p
 
 ## Scope and limits
 
-This is an arcade prototype, not a recreation of Driver: San Francisco or a vehicle simulator. The city is a finite, flat grid about 750 metres wide. Buildings cannot be entered. There are no pedestrians, missions with a story, multiplayer, suspension simulation, damage deformation or realistic tyre/surface modelling. Traffic uses simple loops and can get stuck after collisions. The map's waypoint line is a direction guide, not road-routing navigation. Model loading and WebGL performance depend on the browser, GPU and free CDN availability.
+This is an arcade prototype, not a recreation of Driver: San Francisco or a vehicle simulator. The city is a finite, rolling grid about 750 metres wide. Buildings cannot be entered. There are no pedestrians, missions with a story, multiplayer, suspension simulation, damage deformation or realistic tyre/surface modelling. Traffic uses simple loops and can get stuck after collisions. The map's waypoint line is a direction guide, not road-routing navigation. Model loading and WebGL performance depend on the browser, GPU and free CDN availability.
 
 ## Assets and licenses
 
@@ -61,3 +61,13 @@ Tested loading all 20 models, menu/start, acceleration and braking, car collisio
 - Cinematic color treatment is on by default. The menu's Look button switches to Natural. The interface itself is not color-filtered.
 
 The update was checked on every one of the 20 vehicle types: selection, acceleration, left/right turns, brake/reverse, handbrake, full wheel revolutions, stable wheel centers, building collisions and car-to-car mass/impulse response. Menu, camera cycling, keyboard and mouse possession, map/waypoint, recovery, beacon scoring, mute/grade toggles, blur-to-pause, AI movement and basic mobile gas input were also checked in desktop Chrome / emulated touch Chrome. No JavaScript exceptions were reported in these checks. That is a bounded test pass, not a claim that every situation or browser is bug-free.
+
+## Living City update
+
+- Continuous heightfield roads, sidewalks, markings and terrain with uphill and downhill grades. Vehicle body pitch/roll follows the surface, and gravity affects longitudinal speed. This is ground-constrained arcade driving, without suspension, jumps or airborne rigid-body physics. Collision footprints remain approximate.
+- More commercial building designs, suburban houses, imported streetlights, planters, highway signs, construction props, furnished parks, fountains, walking figures and birds. Decorative people do not interact with cars.
+- Shift rises smoothly into a slow-time aerial view. Move the mouse away from screen center to pan, aim with the fixed crosshair and click a highlighted car. A camera flight carries you down to it. Shift cancels selection.
+- The car you leave is put into AI mode with a fresh route from its current area rather than returning toward an old route. AI still uses simple loops and can get stuck after crashes.
+- Added CC0 assets from https://kenney.nl/assets/city-kit-roads and https://kenney.nl/assets/city-kit-suburban. Walking figures, birds, furnishings and fountain particles are generated geometry.
+
+Slope regression checked all 20 vehicle types for ground alignment, acceleration, left/right turns, reverse, building collision, vehicle collision momentum response and finite position/rotation state. Mouse pan, aimed selection, animated transfer and abandoned-car AI movement were also checked. The render was inspected at street and aerial levels.
