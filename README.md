@@ -52,3 +52,12 @@ Fonts: Inter and Barlow Condensed, served through Google Fonts under their open 
 ## Verification
 
 Tested loading all 20 models, menu/start, acceleration and braking, car collision separation and momentum exchange, keyboard car switching, recovery, and map view. No JavaScript exceptions were reported in the tested desktop runs. This does not guarantee every browser or every driving situation is bug-free.
+
+## Steering and color update
+
+- Each tyre now has separate steering and rolling pivots, centered on the tyre. Steering no longer causes the spinning axle to tilt. The SUV spare tyre stays fixed.
+- Inner and outer front tyres use slightly different steering angles. Wheel rotation uses each tyre radius, including the tractors' larger rear tyres.
+- Handbrake turns preserve sideways momentum instead of snapping velocity to the new heading.
+- Cinematic color treatment is on by default. The menu's Look button switches to Natural. The interface itself is not color-filtered.
+
+The update was checked on every one of the 20 vehicle types: selection, acceleration, left/right turns, brake/reverse, handbrake, full wheel revolutions, stable wheel centers, building collisions and car-to-car mass/impulse response. Menu, camera cycling, keyboard and mouse possession, map/waypoint, recovery, beacon scoring, mute/grade toggles, blur-to-pause, AI movement and basic mobile gas input were also checked in desktop Chrome / emulated touch Chrome. No JavaScript exceptions were reported in these checks. That is a bounded test pass, not a claim that every situation or browser is bug-free.
