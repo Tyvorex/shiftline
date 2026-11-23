@@ -1,0 +1,23 @@
+// Collision damage is per vehicle and persists while it stays in this city session.
+export function createDamageSystem({THREE,scene,groundHeight}){
+ const overlay=document.createElement('div');overlay.id='damageFlash';document.body.append(overlay);
+ const meter=document.createElement('div');meter.id='condition';meter.innerHTML='<div><span>BODY CONDITION</span><b id="healthNum">100%</b></div><div class="healthTrack"><i id="healthFill"></i></div><small id="healthHint">READY TO DRIVE</small>';document.getElementById('speed').append(meter);
+ const particles=[];const smokeMat=new THREE.MeshBasicMaterial({color:'#454d4e',transparent:true,opacity:.2,depthWrite:false});
+ for(let i=0;i<18;i++){const m=new THREE.Mesh(new THREE.IcosahedronGeometry(.35,0),smokeMat.clone());m.visible=false;scene.add(m);particles.push({m,age:5,life:2})}
+ const sparks=[];for(let i=0;i<16;i++){const m=new THREE.Mesh(new THREE.BoxGeometry(.035,.035,.35),new THREE.MeshBasicMaterial({color:'#ffe39b'}));m.visible=false;scene.add(m);sparks.push({m,age:2,v:new THREE.Vector3()})}
+ let puff=0,pi=0,flash=0,impactAt=0;
+ function prepare(c){if(c.damageReady)return;c.damageReady=true;c.health=100;c.damageCooldown=0;c.damageMeshes=[];
+ c.model.traverse(o=>{if(!o.isMesh||o.name.includes('wheel')||o.parent?.name?.includes('wheel'))return;if(!o.geometry?.attributes.position)return;o.geometry=o.geometry.clone();const a=o.geometry.attributes.position;o.userData.originalPositions=new Float32Array(a.array);c.damageMeshes.push(o)});
+ }
+ function hit(c,strength,normal,controlled){prepare(c);if(strength<3.5||c.damageCooldown>0)return 0;c.damageCooldown=.28;const loss=Math.min(48,(strength-2.8)*1.65);c.health=Math.max(0,c.health-loss);
+ const amount=1-c.health/100;for(const mesh of c.damageMeshes){const a=mesh.geometry.attributes.position,orig=mesh.userData.originalPositions;const bounds=mesh.geometry.boundingBox|| (mesh.geometry.computeBoundingBox(),mesh.geometry.boundingBox);const min=bounds.min,max=bounds.max;const length=Math.max(.1,max.z-min.z),mid=(min.z+max.z)/2;for(let i=0;i<a.count;i++){const x=orig[i*3],y=orig[i*3+1],z=orig[i*3+2];const edge=Math.pow(Math.abs(z-mid)/(length*.5),4);const ripple=Math.sin(i*3.17+y*11)*.028*amount;a.setXYZ(i,x*(1-.10*amount*edge)+ripple,y*(1-.08*amount*edge),mid+(z-mid)*(1-.20*amount*edge))}a.needsUpdate=true;mesh.geometry.computeVertexNormals()}
+ if(controlled){flash=Math.min(.5,.12+strength*.012);impactAt=performance.now();for(let i=0;i<sparks.length;i++){const q=sparks[i];q.age=0;q.m.position.set(c.x+(normal?.x||0)*1.4,groundHeight(c.x,c.z)+.8,c.z+(normal?.z||0)*1.4);q.v.set((Math.random()-.5)*6,2+Math.random()*4,(Math.random()-.5)*6);q.m.rotation.set(Math.random()*3,Math.random()*3,0);q.m.visible=true}}
+ return loss;
+ }
+ function repair(c){prepare(c);c.health=100;c.damageCooldown=0;for(const mesh of c.damageMeshes){mesh.geometry.attributes.position.array.set(mesh.userData.originalPositions);mesh.geometry.attributes.position.needsUpdate=true;mesh.geometry.computeVertexNormals()}}
+ return{prepare,hit,repair,update(c,cars,dt,time){for(const a of cars){if(a.damageCooldown>0)a.damageCooldown=Math.max(0,a.damageCooldown-dt)}if(!c)return;prepare(c);flash=Math.max(0,flash-dt*.9);overlay.style.opacity=flash;const n=Math.round(c.health);document.getElementById('healthNum').textContent=n+'%';const fill=document.getElementById('healthFill');fill.style.width=n+'%';fill.style.background=n<25?'#ff695e':n<60?'#f2c05c':'#9ee3ba';document.getElementById('healthHint').textContent=n===0?'ENGINE DISABLED / SHIFT OR REPAIR':n<30?'HEAVY DAMAGE / SERVICE ADVISED':n<75?'BODY DAMAGED / VISIT SERVICE':'READY TO DRIVE';
+ puff+=dt;if(c.health<45&&puff>.16){puff=0;const q=particles[pi++%particles.length];q.age=0;q.life=c.health<15?2.7:1.8;q.m.position.set(c.x+Math.sin(c.a)*c.length*.32,groundHeight(c.x,c.z)+1.3,c.z+Math.cos(c.a)*c.length*.32)}
+ for(const q of particles){q.age+=dt;q.m.visible=q.age<q.life;if(q.m.visible){q.m.position.y+=dt*1.2;q.m.position.x+=dt*.35;q.m.scale.setScalar(.5+q.age*1.3);q.m.material.opacity=(1-q.age/q.life)*.4}}
+ for(const q of sparks){q.age+=dt;q.m.visible=q.age<.45;if(q.m.visible){q.v.y-=dt*9;q.m.position.addScaledVector(q.v,dt)}}
+ },shake(){return flash>0?Math.sin(performance.now()*.09)*flash*.12:0}}
+}
