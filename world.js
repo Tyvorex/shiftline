@@ -13,7 +13,7 @@ export function createServiceStation({THREE,scene,groundHeight,statics,x,z,index
  cube(2,.25,6.4,white,-3,.4,0);
  for(const pz of [-1.9,1.9]){cube(.85,1.8,.7,white,-3,1.4,pz,true);cube(.7,.5,.74,navy,-3,1.8,pz);cube(.25,.5,.18,cyan,-2.54,1.4,pz);const hose=new THREE.Mesh(new THREE.TorusGeometry(.35,.045,5,14,Math.PI*1.6),navy);hose.position.set(-2.47,1.15,pz);hose.rotation.y=Math.PI/2;g.add(hose)}
  // Crisp painted parking rectangle, flush with forecourt.
- for(const px of [-1,5])cube(.13,.035,8,yellow,px,.255,0);for(const pz of [-4,4])cube(6,.035,.13,yellow,2,.255,pz);
+ for(const px of [-1,5])cube(.13,.035,8,yellow,px,.39,0);for(const pz of [-4,4])cube(6,.035,.13,yellow,2,.39,pz);
  const ring=new THREE.Group();g.add(ring);
  // Legible real-world sign, not a giant floating emoji.
  const cv=document.createElement('canvas');cv.width=1024;cv.height=256;const ctx=cv.getContext('2d');ctx.fillStyle='#173b48';ctx.fillRect(0,0,1024,256);ctx.fillStyle='#38c9cc';ctx.fillRect(0,226,1024,30);ctx.fillStyle='#fff';ctx.textAlign='center';ctx.font='bold 94px Arial';ctx.fillText('SHIFT / SERVICE',512,110);ctx.font='42px Arial';ctx.fillStyle='#daeeb6';ctx.fillText('RARE RIDES   /   '+String(index+1).padStart(2,'0'),512,185);
