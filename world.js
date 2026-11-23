@@ -58,4 +58,17 @@ export function buildWorldDetails({THREE,scene,mat,box,tree,groundHeight,statics
  // Parking bays on each lot are sized for 5 m cars, not decoration over live traffic.
  for(const [x,z] of serviceLots)for(let dz=-12;dz<=12;dz+=6){box(7,.035,.12,cream,x-18,.46,z+dz)}
 }
-export function createDrivingEffects(){return null}
+
+export function createDrivingEffects({THREE,scene,groundHeight}){
+ const capacity=180,positions=new Float32Array(capacity*18),geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.BufferAttribute(positions,3));const material=new THREE.MeshBasicMaterial({color:'#263033',transparent:true,opacity:.48,depthWrite:false,side:THREE.DoubleSide});const mesh=new THREE.Mesh(geo,material);mesh.frustumCulled=false;scene.add(mesh);let cursor=0,last=null,timer=0;
+ const dust=[];const dustMat=new THREE.MeshBasicMaterial({color:'#c1b5a0',transparent:true,opacity:.25,depthWrite:false});for(let i=0;i<16;i++){const m=new THREE.Mesh(new THREE.IcosahedronGeometry(.3,0),dustMat.clone());m.visible=false;scene.add(m);dust.push({m,age:2})}let di=0;
+ const hud=document.createElement('div');hud.id='drivingFeel';document.body.append(hud);let shown=0;
+ function wheelPoint(c,side){const fx=Math.sin(c.a),fz=Math.cos(c.a);return{x:c.x-fx*c.length*.28+fz*c.width*.38*side,z:c.z-fz*c.length*.28-fx*c.width*.38*side}}
+ return{update(c,keys,dt,time){if(!c)return;timer+=dt;const sliding=!!keys[' ']&&c.speed>7&&Math.abs(c.steer)>.07;if(dt>0&&sliding&&timer>.045){timer=0;const now=[wheelPoint(c,-1),wheelPoint(c,1)];if(last&&last.car===c&&Math.hypot(last.p[0].x-now[0].x,last.p[0].z-now[0].z)<7){for(let k=0;k<2;k++){const a=last.p[k],b=now[k],dx=b.x-a.x,dz=b.z-a.z,l=Math.hypot(dx,dz)||1,ox=dz/l*.12,oz=-dx/l*.12;const pts=[[a.x-ox,a.z-oz],[a.x+ox,a.z+oz],[b.x+ox,b.z+oz],[a.x-ox,a.z-oz],[b.x+ox,b.z+oz],[b.x-ox,b.z-oz]];for(let j=0;j<6;j++){positions[cursor*18+j*3]=pts[j][0];positions[cursor*18+j*3+1]=groundHeight(...pts[j])+.27;positions[cursor*18+j*3+2]=pts[j][1]}cursor=(cursor+1)%capacity}geo.attributes.position.needsUpdate=true}
+ last={car:c,p:now};const d=dust[di++%dust.length];d.age=0;d.m.position.set(now[di%2].x,groundHeight(c.x,c.z)+.6,now[di%2].z);d.m.visible=true;
+ shown=Math.min(1,shown+dt*3)
+ }else if(!sliding){last=null;shown=Math.max(0,shown-dt*2)}
+ for(const d of dust){d.age+=dt;d.m.visible=d.age<.8;if(d.m.visible){d.m.position.y+=dt*.8;d.m.scale.setScalar(1+d.age*5);d.m.material.opacity=(1-d.age/.8)*.25}}
+ hud.textContent=sliding?'HANDBRAKE / SLIDE':'';hud.style.opacity=shown;
+ }}
+}
