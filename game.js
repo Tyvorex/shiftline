@@ -207,7 +207,7 @@ function spawnOffer(di){const def=DEFS[di!=null?di:Math.floor(MR()*DEFS.length)]
   if(def[0]==='Trash Run'||def[0]==='Arrest the Thief')p=roadPt('any');
   const sp=emojiSprite(def[1],def[2],4.5);sp.position.set(p.x,groundHeight(p.x,p.z)+13,p.z);scene.add(sp);const bm=beacon(def[2],1.05);bm.position.set(p.x,groundHeight(p.x,p.z),p.z);bm.visible=true;
   const o={def,x:p.x,z:p.z,sp,bm,ttl:130};R4.offers.push(o);return o}
-function dropOffer(o){scene.remove(o.sp);scene.remove(o.bm);R4.offers=R4.offers.filter(v=>v!==o)}
+function dropOffer(o){scene.remove(o.sp);scene.remove(o.bm);o.sp.material.map?.dispose();o.sp.material.dispose();o.bm.traverse(q=>{if(q.isMesh)q.material.dispose()});R4.offers=R4.offers.filter(v=>v!==o)}
 function startMission(o){const def=o.def;if(!isType(def[4])){const need=def[4].map(t=>carTypes[t][1]).join(' / ');if(!o._warn||elapsed-o._warn>5){o._warn=elapsed;toast(def[0]+' needs: '+need+' • SHIFT into one');}return}
   const m=def[5]();m.def=def;m.t=0;m.offer=o;R4.active=m;dropOffer(o);misBox.classList.remove('hidden');$('misTitle').textContent=def[1]+' '+def[0].toUpperCase()+' • '+def[3]+' COINS';toast(def[0].toUpperCase()+' STARTED')}
 function endMission(res){const m=R4.active;if(!m)return;if(m.cleanup)m.cleanup();for(const g of tPool)g.visible=false;
@@ -223,7 +223,7 @@ function openJobs(){if(!started||paused||shift||R4.shop)return;Object.keys(keys)
 $('jobsBtn').onclick=openJobs;$('jobsClose').onclick=closeJobs;R4.openJobs=openJobs;R4.closeJobs=closeJobs;
 
 function updateR4(dt){
- maintenanceT+=dt;if(maintenanceT>5){maintenanceT=0;for(const c of cars.slice()){if(c===player||c.race||c.target||c.chaser)continue;const away=Math.hypot(c.x-player.x,c.z-player.z);if(c.health===0&&away>170){damageSystem?.repair(c);const p=nearestRoad(c.x,c.z);Object.assign(c,{x:p.x,z:p.z,a:p.a,vx:0,vz:0});rejoinTraffic(c)}if(c.retired&&away>160&&cars.length>48){carsGroup.remove(c.root);scene.remove(c.marker);cars.splice(cars.indexOf(c),1)}}}
+ maintenanceT+=dt;if(maintenanceT>5){maintenanceT=0;for(const c of cars.slice()){if(c===player||c.race||c.target||c.chaser)continue;const away=Math.hypot(c.x-player.x,c.z-player.z);const moved=c._trafficLast?Math.hypot(c.x-c._trafficLast.x,c.z-c._trafficLast.z):99;c._trafficLast={x:c.x,z:c.z};c._stuckTime=moved<2&&c.speed<.8?(c._stuckTime||0)+5:0;if(c._stuckTime>40&&away>140&&!c._hold){const p=nearestRoad(c.x,c.z);Object.assign(c,{x:p.x,z:p.z,a:p.a,vx:0,vz:0,_stuckTime:0});damageSystem?.repair(c);rejoinTraffic(c)}if(c.health===0&&away>170){damageSystem?.repair(c);const p=nearestRoad(c.x,c.z);Object.assign(c,{x:p.x,z:p.z,a:p.a,vx:0,vz:0});rejoinTraffic(c)}if(c.retired&&away>160&&cars.length>48){carsGroup.remove(c.root);scene.remove(c.marker);cars.splice(cars.indexOf(c),1)}}}
 
   // stations
   let near=-1;for(let k=0;k<R4.stations.length;k++){const s=R4.stations[k];s.ring.rotation.z+=dt*.6;if(Math.abs(player.x-(s.x+2))<4&&Math.abs(player.z-s.z)<5)near=k}
