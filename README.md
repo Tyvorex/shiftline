@@ -4,7 +4,7 @@ A free, static 3D open-city driving prototype. Explore a coastal grid city, driv
 
 ## Play
 
-Use the GitHub Pages link in this repository's deployment settings. A modern desktop browser with WebGL and hardware acceleration is recommended. The first load downloads models from jsDelivr, with a raw GitHub fallback. An internet connection is required. There is no paid API or backend.
+Play at https://tyvorex.github.io/shiftline/. A modern desktop browser with WebGL and hardware acceleration is recommended. The first load downloads models from jsDelivr, with a raw GitHub fallback. An internet connection is required. There is no paid API or backend.
 
 ## Controls
 
@@ -15,9 +15,12 @@ Use the GitHub Pages link in this repository's deployment settings. A modern des
 - C: cycle three camera views
 - R: recover to a nearby road
 - M: full map. Click it to set a waypoint
-- Escape: pause menu
+- J: jobs board, car requirements and map markers
+- E at a service bay: rare car shop
+- F at a service bay: free body and engine repair
+- Escape: close a panel or pause menu
 
-The starting-ride selector offers all 20 models. Mobile has basic steering and pedal buttons, but desktop is the primary target.
+The starting-ride selector offers all 20 models. Touch screens have steering/pedal buttons, handbrake, service actions, drag-to-pan Shift and an Enter Car button. Desktop remains the primary target.
 
 ## Included
 
@@ -33,7 +36,7 @@ The starting-ride selector offers all 20 models. Mobile has basic steering and p
 
 ## Scope and limits
 
-This is an arcade prototype, not a recreation of Driver: San Francisco or a vehicle simulator. The city is a finite, rolling grid about 750 metres wide. Buildings cannot be entered. There are no pedestrians, missions with a story, multiplayer, suspension simulation, damage deformation or realistic tyre/surface modelling. Traffic uses simple loops and can get stuck after collisions. The map's waypoint line is a direction guide, not road-routing navigation. Model loading and WebGL performance depend on the browser, GPU and free CDN availability.
+This is an arcade prototype, not a recreation of Driver: San Francisco or a vehicle simulator. The city is a finite, rolling grid about 750 metres wide. Buildings cannot be entered. Walking figures are decorative. There is no story campaign, multiplayer, suspension simulation or realistic tyre/surface modelling. Damage deformation is stylized, not soft-body physics. Traffic uses simple loops and can get stuck after collisions. Map routes follow a simple road graph, not traffic-law turn restrictions. Model loading and WebGL performance depend on the browser, GPU and free CDN availability.
 
 ## Assets and licenses
 
@@ -78,3 +81,20 @@ Slope regression checked all 20 vehicle types for ground alignment, acceleration
 - Golden Hill: a winding scenic climb north of the city with hillside villas, streetlights and a summit viewpoint. Two AI cruisers loop the hill road; abandoned cars rejoin the hill circuit.
 - The Row: a rough quarter on the south-east edge with shanties, cracked and patched roads, potholes, wrecked cars and flickering lamps.
 - Low-poly merged clouds drifting over the city.
+
+
+## Meridian service and damage update (round 5)
+
+- Split the game into separate modules for world details, mission props, damage, signals and road navigation, plus a separate stylesheet.
+- Six service courts sit outside traffic lanes. Stop in a bay for two seconds, press E for the shop or F for free repair. City courts have flattened foundations, pumps, canopies and marked forecourts.
+- Every car has body condition. Hard building and car collisions cause dents, impact flash, sparks and camera shake. Heavy damage reduces power, starts smoke and can disable the engine. Repair restores original mesh vertices.
+- Jobs board lists live offers, required vehicles, reward and distance. Set a job marker or abandon the active job. Twenty-four mission types use physical bins, crates, cones, fire props and parking boxes where relevant.
+- Road-graph route display and map lines include Golden Hill. Hill recovery stays on the nearby hill road rather than teleporting to the city.
+- Traffic lights at nine major junctions affect ordinary AI traffic. Traffic is still simplified and can become blocked after collisions.
+- Tyre trails and dust, furnished cafe plazas, waterfront seating and shelters, moored boats, retaining rocks, hillside guardrails and a summit telescope.
+- Hill edge markings use one continuous ribbon through bends. Villa foundations match their orientation and the road has driveway clearance. Clouds remain dynamic after static mesh merging.
+- Rare ambient cars are capped. Retrieving an existing rare variant reuses its car rather than creating unlimited copies. Coins and owned rare variants are saved in this browser's local storage; position and damage are session-only.
+
+### Round 5 verification
+
+Desktop Chrome checks covered all 20 base vehicle types for acceleration, turning, reverse and finite pose; all 24 mission setup/tick/cleanup paths; all 24 completion and reward state paths; timeout, VIP crash, rival-win and lost-tail failure paths; building collision damage and exact repair geometry; service-bay repair and shop UI; rare purchase/retrieval; hill recovery; moving-car transfer and Shift cancel; and a controlled two-minute traffic simulation. Tests used controlled state where appropriate, not full manual mission playthroughs. Street, aerial, service, mission, coast and hill views were visually inspected. No JavaScript exceptions occurred in these bounded checks. Emulated portrait-touch checks also covered gas release, jobs close, repair, shop and Shift controls. Real phones and lower-power devices need more testing.
