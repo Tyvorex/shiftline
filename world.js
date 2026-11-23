@@ -33,12 +33,6 @@ export function buildWorldDetails({THREE,scene,mat,box,tree,groundHeight,statics
   label(v<0?'GARDEN AVE':'MERIDIAN AVE',v+12.7,z,3.1,Math.PI/2,4,'#255d59','CITY ROUTE '+(v+400)/100);
   const bin=new THREE.Mesh(new THREE.CylinderGeometry(.35,.32,.9,8),metal);bin.position.set(v+14.5,groundHeight(v+14.5,z+5)+.85,z+5);bin.castShadow=true;scene.add(bin);
  }
- // Traffic signal standards: one pole on each corner, readable from the road.
- const red=mat('#6b312b'),amber=mat('#bd7b2d'),green=mat('#65c4a8');
- for(const x of [-200,0,200])for(const z of [-200,0,200])for(const side of [-1,1]){
-  const px=x+side*13,pz=z+side*13;box(.2,5.2,.2,metal,px,2.6,pz);box(1,.0+2,.55,metal,px,4.4,pz);
-  for(let k=0;k<3;k++){const lamp=new THREE.Mesh(new THREE.CircleGeometry(.22,10),k===2?green:metal);lamp.position.set(px,groundHeight(px,pz)+5-k*.6,pz-side*.29);lamp.rotation.y=side===1?Math.PI:0;scene.add(lamp)}
- }
  // Cafes have tables, chairs, shade, and room to walk between them.
  for(const b of blocks.filter(v=>v.park)){
   const x=b.x-17,z=b.z-16;
