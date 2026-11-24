@@ -6,6 +6,7 @@ export function createNavigation({THREE,scene,groundHeight,coords,hillRoute}){
  for(const x of lines)for(const z of lines)node(x,z);
  for(let i=0;i<lines.length;i++)for(let j=0;j<lines.length;j++){if(i)link(node(lines[i],lines[j]),node(lines[i-1],lines[j]));if(j)link(node(lines[i],lines[j]),node(lines[i],lines[j-1]))}
  let prev=node(0,-350);for(const p of hillRoute){const next=node(p.x,p.z);link(prev,next);prev=next}
+ {const IX=[600,720,840],IZ=[-120,0,120];for(let i=0;i<3;i++)for(let j=0;j<3;j++){if(i)link(node(IX[i],IZ[j]),node(IX[i-1],IZ[j]));if(j)link(node(IX[i],IZ[j]),node(IX[i],IZ[j-1]))}link(node(350,0),node(600,0))}
  function nearest(p){let best=0,score=Infinity;nodes.forEach((n,i)=>{const d=Math.hypot(n.x-p.x,n.z-p.z);if(d<score){score=d;best=i}});return best}
  function attachment(p){let best=null,score=Infinity;for(let a=0;a<nodes.length;a++)for(const e of edges[a]){if(e.to<a)continue;const u=nodes[a],v=nodes[e.to],dx=v.x-u.x,dz=v.z-u.z,l=dx*dx+dz*dz,t=Math.max(0,Math.min(1,((p.x-u.x)*dx+(p.z-u.z)*dz)/l));const q={x:u.x+dx*t,z:u.z+dz*t},off=Math.hypot(p.x-q.x,p.z-q.z);if(off<score){score=off;best={a,b:e.to,q,off,t,len:Math.sqrt(l)}}}return best}
  function solve(from,to){const A=attachment(from),B=attachment(to);if(!A||!B)return[from,to];if(A.a===B.a&&A.b===B.b)return[from,A.q,B.q,to];
