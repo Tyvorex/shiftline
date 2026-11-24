@@ -3,7 +3,7 @@ export function buildCoastAndHill({THREE,scene,groundHeight,box,mat,tree,statics
  const wood=mat('#a58863'),rail=mat('#d3c9a4'),steel=mat('#49636b'),stone=mat('#89978d'),darkStone=mat('#657b79'),white=mat('#e9e8dc'),navy=mat('#355568'),ochre=mat('#c69c65'),leaf=mat('#56846c');
  const cube=(w,h,d,m,x,y,z)=>{const o=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),m);o.position.set(x,y,z);o.castShadow=o.receiveShadow=true;scene.add(o);return o};
  // A coastal retaining cliff, rather than grass ending abruptly over the sea.
- for(const side of [-1,1])for(let z=-345;z<=345;z+=27){const x=side*383,h=Math.max(8,groundHeight(x,z)+5);const rock=new THREE.Mesh(new THREE.CylinderGeometry(11,17,h,5),z%2?stone:darkStone);rock.position.set(x,h/2-5,z);rock.rotation.y=rnd()*3;rock.receiveShadow=true;scene.add(rock)}
+ for(const side of [-1,1])for(let z=-345;z<=345;z+=27){if(side===1&&Math.abs(z)<34)continue;const x=side*383,h=Math.max(8,groundHeight(x,z)+5);const rock=new THREE.Mesh(new THREE.CylinderGeometry(11,17,h,5),z%2?stone:darkStone);rock.position.set(x,h/2-5,z);rock.rotation.y=rnd()*3;rock.receiveShadow=true;scene.add(rock)}
  for(let x=-350;x<=350;x+=27){const z=382,h=Math.max(8,groundHeight(x,z)+5);const rock=new THREE.Mesh(new THREE.CylinderGeometry(12,18,h,5),stone);rock.position.set(x,h/2-5,z);rock.rotation.y=rnd()*3;scene.add(rock)}
  const pierX=-250;
  // Small boats moored below the coastal road, correctly sitting on sea level.
