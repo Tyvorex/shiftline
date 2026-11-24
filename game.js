@@ -32,7 +32,7 @@ let seed=44;function rnd(){seed=(seed*1664525+1013904223)>>>0;return seed/429496
 const SPD=1.14;/* ROUND 8: every car +14% top speed and power */
 const carTypes=[['sedan-sports','Apex Sport',60,16,1.1,6],['sedan','Metro Sedan',47,12,1,5],['hatchback-sports','Pulse GT',55,17,.9,6],['suv','Trail SUV',43,12,1.35,5],['suv-luxury','Monarch LX',50,13,1.5,6],['taxi','City Taxi',46,13,1.1,5],['police','Interceptor',64,19,1.2,7],['ambulance','Medic Response',42,11,1.8,5],['firetruck','Ladder Engine',38,10,2.6,4],['garbage-truck','Sanitation',32,8,2.7,4],['truck','Ranger Pickup',46,13,1.4,5],['truck-flat','Flatbed',40,11,1.6,4],['van','Courier Van',42,11,1.5,5],['delivery','Box Runner',38,10,1.7,4],['delivery-flat','Cargo Deck',39,11,1.6,4],['race','Formula Sprint',76,25,.8,8],['race-future','Vector Concept',72,23,.85,7],['tractor','Field Tractor',28,9,1.8,3],['tractor-shovel','Loader',26,8,2.2,3],['tractor-police','Patrol Tractor',33,10,1.9,3]];
 carTypes.forEach((t,i)=>{$('garage').add(new Option(String(i+1).padStart(2,'0')+' / '+t[1],i))});
-const base='https://cdn.jsdelivr.net/gh/shorepine/kenney@main/3d/';const loader=new GLTFLoader();let loaded=0;const total=52;
+const base='https://cdn.jsdelivr.net/gh/shorepine/kenney@main/3d/';const loader=new GLTFLoader();let loaded=0;const total=62;
 async function asset(folder,name){try{const g=await loader.loadAsync(base+folder+'/'+name+'.glb').catch(()=>loader.loadAsync('https://raw.githubusercontent.com/shorepine/kenney/main/3d/'+folder+'/'+name+'.glb'));g.scene.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true}});loaded++;$('loading').textContent=`Loading models ${loaded} / ${total}`;$('loadingTrack').firstChild.style.width=loaded/total*100+'%';return g.scene}catch(e){console.error('Asset load failed',name,e);throw Error('Could not load '+name+'. Check your internet and reload.')}}
 let driveEffects=null,damageSystem=null,missionProps=null,trafficSignals=null,navigation=null,pursuit=null;let cars=[],player,shift=false,targetIndex=0,paused=true,mapOpen=false,cameraMode=0,started=false,score=0,distance=0,beaconIndex=0,waypoint=null;const keys={},clock=new THREE.Clock();let toastTimer=0,flash=0;const carsGroup=new THREE.Group();scene.add(carsGroup);const beaconPoints=[[-200,0],[100,-100],[300,200],[-100,300],[-300,-200],[200,-300],[0,200]];
 const ring=new THREE.Mesh(new THREE.TorusGeometry(4,.22,8,40),new THREE.MeshBasicMaterial({color:0xe9fb72}));ring.rotation.x=Math.PI/2;scene.add(ring);const beam=new THREE.Mesh(new THREE.CylinderGeometry(.1,.1,38,8),new THREE.MeshBasicMaterial({color:0xe9fb72,transparent:true,opacity:.45}));scene.add(beam);const markers=[];const markerGeo=new THREE.TorusGeometry(2.7,.12,6,24),markerMat=new THREE.MeshBasicMaterial({color:0xb8edff,depthTest:false,transparent:true,opacity:.75});
@@ -43,8 +43,8 @@ let coins=+(localStorage.getItem('sl_coins')||0);function addCoins(n,why){coins=
 // Combining the two rotations on one XYZ Euler tilts the axle as it spins.
 function prepareWheels(model,scale){const nodes=[],wheels=[];model.updateMatrixWorld(true);model.traverse(o=>{if(/^wheel-(front|back)-(left|right)$/.test(o.name))nodes.push(o)});for(const node of nodes){const bounds=new THREE.Box3().setFromObject(node),center=bounds.getCenter(new THREE.Vector3()),size=bounds.getSize(new THREE.Vector3()),parent=node.parent;const pivot=new THREE.Group();pivot.name='steering-pivot-'+node.name;pivot.position.copy(parent.worldToLocal(center));parent.add(pivot);pivot.updateMatrixWorld(true);const spin=new THREE.Group();spin.name='rolling-pivot-'+node.name;pivot.add(spin);spin.updateMatrixWorld(true);spin.attach(node);wheels.push({node,pivot,spin,front:node.name.includes('front'),radius:Math.max(.15,size.y*scale*.5),lateral:pivot.position.x*scale,axle:pivot.position.z*scale,angle:0})}return wheels}
 const brakeLightMat=new THREE.MeshBasicMaterial({color:0xff2818});const strobeGeo=new THREE.BoxGeometry(.5,.22,.7);const strobeRed=new THREE.MeshBasicMaterial({color:0xff2020});const strobeBlue=new THREE.MeshBasicMaterial({color:0x2255ff});
-function newCar(template,type,x,z,a,i){const root=new THREE.Group();const model=template.clone(true);const wheelScale=/^tractor/.test(carTypes[type][0])?2.2:2;const wheels=prepareWheels(model,wheelScale);const b=new THREE.Box3().setFromObject(model),size=b.getSize(new THREE.Vector3()),center=b.getCenter(new THREE.Vector3());const scale=/^tractor/.test(carTypes[type][0])?2.2:2;model.position.sub(center);model.position.y+=size.y/2;model.scale.setScalar(scale); // center translation must scale with model
-model.position.multiplyScalar(scale);root.add(model);root.position.set(x,groundHeight(x,z)+.28,z);root.rotation.y=a;carsGroup.add(root);const len=size.z*scale,width=size.x*scale;const c={root,model,type,x,z,a,vx:0,vz:0,steer:0,length:len,width,r:Math.min(width*.46,1.5),mass:carTypes[type][4],speed:0,wheels,wheelbase:Math.max(1,Math.abs(wheels.filter(w=>w.front).reduce((s,w)=>s+w.axle,0)/2-wheels.filter(w=>!w.front).reduce((s,w)=>s+w.axle,0)/2)),route:null,wp:0,ai:true};const m=new THREE.Mesh(markerGeo,markerMat);m.rotation.x=-Math.PI/2;m.visible=false;scene.add(m);c.marker=m;
+function newCar(template,type,x,z,a,i){const root=new THREE.Group();const model=template.clone(true);const wheelScale=carTypes[type][7]?.scale??(/^tractor/.test(carTypes[type][0])?2.2:2);const wheels=prepareWheels(model,wheelScale);const b=new THREE.Box3().setFromObject(model),size=b.getSize(new THREE.Vector3()),center=b.getCenter(new THREE.Vector3());const scale=wheelScale;model.position.sub(center);model.position.y+=size.y/2;model.scale.setScalar(scale); // center translation must scale with model
+model.position.multiplyScalar(scale);root.add(model);root.position.set(x,groundHeight(x,z)+.28,z);root.rotation.y=a;carsGroup.add(root);const len=size.z*scale,width=size.x*scale;const c={root,model,type,x,z,a,vx:0,vz:0,steer:0,length:len,width,r:Math.min(width*.46,1.5),mass:carTypes[type][4],speed:0,wheels,wheelbase:!wheels.length?len*.6:Math.max(1,Math.abs(wheels.filter(w=>w.front).reduce((s,w)=>s+w.axle,0)/2-wheels.filter(w=>!w.front).reduce((s,w)=>s+w.axle,0)/2)),route:null,wp:0,ai:true};const m=new THREE.Mesh(markerGeo,markerMat);m.rotation.x=-Math.PI/2;m.visible=false;scene.add(m);c.marker=m;
 const hgt=size.y*scale;
 const brakeGeo=new THREE.BoxGeometry(Math.min(width*.72,2.2),.16,.1);
 const brakeL=new THREE.Mesh(brakeGeo,brakeLightMat);brakeL.position.set(0,Math.max(.55,hgt*.58),-len*.485);brakeL.visible=false;root.add(brakeL);c.brakeLight=brakeL;
@@ -120,14 +120,21 @@ RARES.forEach((r,i)=>{const [name,base,tint,top,acc,mult]=r;carTypes.push([carTy
 /* ROUND 9: living traffic - 10 new cars in the roster, and the fleet now turns over
    continuously: fresh cars spawn on roads near the player every few seconds and
    ambient cars retire once they are old and out of sight. */
-const NEW9=[
- ['Inferno SS',0,0xff4a1f,66,19,6],['Ocean Cruiser',1,0x2fb8c9,50,13,5],
- ['Vortex RS',2,0xd94dff,59,18,6],['Desert Fox',3,0xd9b36c,46,13,5],
- ['Nightshade LX',4,0x3a2a55,54,14,6],['Rapid Post',12,0xffd23d,45,12,5],
- ['Bulldog Hauler',10,0x2a4d8f,48,13,5],['Cargo Master',11,0x7a8c3f,43,12,4],
- ['Comet 9R',15,0x9adfff,78,26,8],['Terra Scout',17,0x8f6b2a,30,10,3]];
+const NEW10=[
+ ['Monster Crusher','toy-car','vehicle-monster-truck',1,5,40,15,2.2,4],
+ ['Drag Rocket','toy-car','vehicle-drag-racer',1,3.9,80,28,.8,8],
+ ['Vintage Roadster','toy-car','vehicle-vintage-racer',1,5.2,58,16,.9,5],
+ ['Speedster','toy-car','vehicle-speedster',1,5.2,70,22,.85,7],
+ ['Low Rider','toy-car','vehicle-racer-low',1,5.1,62,18,.9,6],
+ ['Mini Rover','toy-car','vehicle-suv',1,5.2,44,12,1.2,5],
+ ['Dune Pickup','toy-car','vehicle-truck',1,5.2,47,13,1.3,5],
+ ['Go-Kart','car','kart-oobi',0,1.9,48,20,.6,4],
+ ['Freight Hauler','retro-urban','truck-green',1,3.4,34,9,2.6,4],
+ ['Steel Freighter','retro-urban','truck-grey',1,3.4,36,9,2.5,4]];
+const WHN={'wheel-fl':'wheel-front-left','wheel-fr':'wheel-front-right','wheel-bl':'wheel-back-left','wheel-br':'wheel-back-right'};
+const new10Models=await Promise.all(NEW10.map(n=>asset(n[1],n[2])));
 const new9Idx=[];
-NEW9.forEach(n=>{const [name,base,tint,top,acc,gears]=n;carTypes.push([carTypes[base][0],name,top,acc,carTypes[base][4],gears,tint]);carModels.push(carModels[base]);new9Idx.push(carTypes.length-1)});
+NEW10.forEach((n,k)=>{const [name,folder,file,flip,scale,top,acc,mass,gears]=n;let m=new10Models[k];m.traverse(o=>{if(WHN[o.name])o.name=WHN[o.name]});if(flip){const w=new THREE.Group();m.rotation.y=Math.PI;w.add(m);m=w}carTypes.push([file,name,top,acc,mass,gears,0,{scale}]);carModels.push(m);new9Idx.push(carTypes.length-1)});
 new9Idx.forEach((ti,k)=>{$('garage').add(new Option(String(21+k).padStart(2,'0')+' / '+carTypes[ti][1],ti))});
 const TRAFFIC_TARGET=54,POOL9=[0,1,2,3,4,5,10,12,13,14,0,1,2,3,4,11,7,9,15,16,8,17,18,6,19,...new9Idx,...new9Idx];
 function removeCar(c){if(c===player)return;c.root.parent?.remove(c.root);c.marker?.parent?.remove(c.marker);const i=cars.indexOf(c);if(i>=0)cars.splice(i,1)}
