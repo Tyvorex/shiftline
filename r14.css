@@ -1,0 +1,2 @@
+#rainVeil{position:fixed;inset:0;pointer-events:none;background:linear-gradient(#2a3a48,#1a242c);opacity:0;z-index:2;mix-blend-mode:multiply}
+#rainBtn.on{background:#2f6b8a}
