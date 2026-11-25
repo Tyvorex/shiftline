@@ -159,6 +159,25 @@ try{
   requestAnimationFrame(tick);
 }catch(e){console.warn('r14 rain',e)}
 
+// ---------- 6. Smooth ribbon over the hill road entrance (the box segments leave ragged shards at the corner) ----------
+try{
+  let pts=[[0,-340],[0,-385],[0,-398],[40,-428],[72,-462]];
+  for(let it=0;it<3;it++){const o=[pts[0]];for(let i=0;i<pts.length-1;i++){const a=pts[i],b=pts[i+1];o.push([a[0]*.9+b[0]*.1,a[1]*.9+b[1]*.1],[a[0]*.1+b[0]*.9,a[1]*.1+b[1]*.9])}o.push(pts[pts.length-1]);pts=o}
+  const ribbon=(off,w,color,raise)=>{
+    const v=[],idx=[];
+    pts.forEach((p,i)=>{const a=pts[Math.max(0,i-1)],b=pts[Math.min(pts.length-1,i+1)];let tx=b[0]-a[0],tz=b[1]-a[1];const l=Math.hypot(tx,tz)||1;tx/=l;tz/=l;const nx=tz,nz=-tx;
+      for(const sd of [-1,1]){const d=off+sd*w/2,x=p[0]+nx*d,z=p[1]+nz*d;v.push(x,gh(x,z)+raise,z)}
+      if(i){const j=i*2;idx.push(j-2,j,j-1,j-1,j,j+1)}});
+    const geo=new T.BufferGeometry();geo.setAttribute('position',new T.Float32BufferAttribute(v,3));geo.setIndex(idx);geo.computeVertexNormals();
+    const m=new T.Mesh(geo,new T.MeshStandardMaterial({color,roughness:.95,side:T.DoubleSide}));m.receiveShadow=true;scene.add(m);return m};
+  ribbon(0,23,'#4a5256',.62);ribbon(10.6,.35,'#e8e7ce',.66);ribbon(-10.6,.35,'#e8e7ce',.66);
+}catch(e){console.warn('r14 hill road',e)}
+
+// ---------- 7. Softer player headlights at night (the spot light was too hot on the road) ----------
+try{
+  scene.traverse(o=>{if(o.isSpotLight&&o.distance===70&&!o.__r14){o.__r14=1;let v=o.intensity;Object.defineProperty(o,'intensity',{get(){return v*.62},set(x){v=x},configurable:true})}});
+}catch(e){console.warn('r14 headlights',e)}
+
 // ---------- 2. Stats for the audit harness ----------
 window.__r14={rowBuildings:pi};
 }
