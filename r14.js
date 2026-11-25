@@ -178,6 +178,128 @@ try{
   scene.traverse(o=>{if(o.isSpotLight&&o.distance===70&&!o.__r14){o.__r14=1;let v=o.intensity;Object.defineProperty(o,'intensity',{get(){return v*.62},set(x){v=x},configurable:true})}});
 }catch(e){console.warn('r14 headlights',e)}
 
+// ---------- 8. Dares (chase and time trial), stunt kickers and map markers ----------
+try{
+  const JC=[-300,-200,-100,0,100,200,300];
+  const hud=document.createElement('div');hud.id='r14hud';hud.style.display='none';document.body.appendChild(hud);
+  const chip=document.createElement('button');chip.id='r14chip';chip.textContent='Dares';document.body.appendChild(chip);
+  const menu=document.createElement('div');menu.id='r14menu';menu.style.display='none';
+  menu.innerHTML='<b>DARES</b><button data-d="chase">Chase: catch the runner</button><button data-d="trial">Time trial: 6 gates</button><button data-d="stop">Stop dare</button>';
+  document.body.appendChild(menu);
+  const mk3=(geo,col,op)=>new T.Mesh(geo,new T.MeshBasicMaterial({color:col,transparent:true,opacity:op,depthWrite:false,blending:T.AdditiveBlending}));
+  // 3D marker over the chase target
+  const arrow=new T.Mesh(new T.ConeGeometry(2.2,4.6,4),new T.MeshBasicMaterial({color:'#ff3b2f',depthTest:false,transparent:true,opacity:.95}));arrow.renderOrder=999;arrow.rotation.x=Math.PI;arrow.visible=false;arrow.frustumCulled=false;scene.add(arrow);
+  // gates
+  const ringGeo=new T.TorusGeometry(7,.55,8,28),beamGeo=new T.CylinderGeometry(6.6,6.6,60,20,1,true);
+  const gateMeshes=[];
+  for(let i=0;i<2;i++){const grp=new T.Group();const r=mk3(ringGeo,i?'#58d6ff':'#e9fb72',i?.45:.95);r.rotation.x=Math.PI/2;r.position.y=1;const b=mk3(beamGeo,i?'#58d6ff':'#e9fb72',i?.08:.16);b.position.y=30;grp.add(r,b);grp.visible=false;grp.frustumCulled=false;scene.add(grp);gateMeshes.push(grp)}
+  // the target runs faster than traffic and ignores yields
+  const sig=g.signals,prevDesired=sig.desiredSpeed.bind(sig);
+  sig.desiredSpeed=function(c,d){if(c===D.target&&D.kind==='chase')return Math.max(d,16.5);return prevDesired(c,d)};
+  const D={kind:null,t:0,target:null,hold:0,gates:[],gi:0,limit:0,last:performance.now(),done:0};
+  const fmt=s=>{s=Math.max(0,Math.ceil(s));return Math.floor(s/60)+':'+String(s%60).padStart(2,'0')};
+  const coins=(n,why)=>{if(window.R4&&R4.addCoins)R4.addCoins(n,why)};
+  const bad=/police|ambulance|fire|swat|tractor|bus|truck|tank/i;
+  function startChase(){
+    const p=g.player();let best=null;const cand=g.cars.filter(c=>c!==p&&!c.retired&&c.ai!==false&&!c.pursuit&&!c.race&&!c.target&&Math.abs(c.x)<310&&Math.abs(c.z)<310&&!bad.test(String((g.carTypes[c.type]||[])[0]||c.type)));
+    cand.sort((a,b)=>Math.abs(Math.hypot(a.x-p.x,a.z-p.z)-150)-Math.abs(Math.hypot(b.x-p.x,b.z-p.z)-150));best=cand[0];
+    if(!best){toast('No runner found');return}
+    Object.assign(D,{kind:'chase',t:100,target:best,hold:0,limit:100,done:0});best._dare=1;
+  }
+  function startTrial(){
+    const p=g.player();let jx=JC.reduce((a,b)=>Math.abs(b-p.x)<Math.abs(a-p.x)?b:a),jz=JC.reduce((a,b)=>Math.abs(b-p.z)<Math.abs(a-p.z)?b:a);
+    const gates=[],used=new Set([jx+','+jz]);
+    for(let i=0;i<6;i++){let opts=[];for(const a of JC)for(const b of JC){if(used.has(a+','+b))continue;const d=Math.hypot(a-jx,b-jz);if(d>=95&&d<=230)opts.push([a,b])}
+      if(!opts.length)break;const o=opts[Math.floor(rnd()*opts.length)];used.add(o[0]+','+o[1]);jx=o[0];jz=o[1];gates.push({x:jx,z:jz})}
+    Object.assign(D,{kind:'trial',gates,gi:0,t:28,limit:28,done:0,target:null});
+  }
+  function stop(msg){D.kind=null;D.target=null;arrow.visible=false;gateMeshes.forEach(m=>m.visible=false);hud.style.display='none';if(msg)toast(msg)}
+  const toast=m=>{const t=document.getElementById('toast');if(t){t.textContent=m;t.style.opacity=1;clearTimeout(toast._t);toast._t=setTimeout(()=>{t.style.opacity=0},2800)}};
+  chip.addEventListener('click',()=>{menu.style.display=menu.style.display==='none'?'flex':'none'});
+  menu.addEventListener('click',e=>{const d=e.target.dataset&&e.target.dataset.d;if(!d)return;menu.style.display='none';if(d==='chase'){stop();startChase()}else if(d==='trial'){stop();startTrial()}else stop('Dare stopped')});
+  window.addEventListener('keydown',e=>{if(e.key.toLowerCase()==='b'&&!e.repeat&&!/INPUT|SELECT/.test(e.target.tagName))menu.style.display=menu.style.display==='none'?'flex':'none'});
+  // overlay canvases so the markers sit on both maps
+  const ov={};
+  const ovFor=id=>{let c=ov[id];const base=document.getElementById(id);if(!base)return null;if(!c){c=document.createElement('canvas');c.style.cssText='position:absolute;pointer-events:none;z-index:3';base.parentNode.appendChild(c);ov[id]=c}
+    c.width=base.width;c.height=base.height;c.style.left=base.offsetLeft+'px';c.style.top=base.offsetTop+'px';c.style.width=base.clientWidth+'px';c.style.height=base.clientHeight+'px';return c};
+  function drawMaps(){
+    for(const id of ['map','bigCanvas']){
+      const base=document.getElementById(id);if(!base)continue;
+      if(id==='bigCanvas'&&document.getElementById('bigMap').classList.contains('hidden')){if(ov[id])ov[id].style.display='none';continue}
+      const c=ovFor(id);if(!c)continue;c.style.display='block';const x=c.getContext('2d');x.clearRect(0,0,c.width,c.height);
+      if(!D.kind)continue;const p=g.player(),big=id==='bigCanvas',span=big?1480:1120,mx0=big?-560:(p.x>400?-90:-560),s=c.width/span,tx=v=>(v-mx0)*s,tz=v=>(v+720)*s;
+      const dot=(px,pz,col,r)=>{x.fillStyle=col;x.strokeStyle='#fff';x.lineWidth=2;x.beginPath();x.arc(tx(px),tz(pz),r,0,7);x.fill();x.stroke()};
+      if(D.kind==='chase'&&D.target)dot(D.target.x,D.target.z,'#ff4d3d',big?7:5);
+      if(D.kind==='trial')D.gates.forEach((q,i)=>{if(i<D.gi)return;dot(q.x,q.z,i===D.gi?'#e9fb72':'#58d6ff',i===D.gi?(big?8:5.5):(big?4:3))});
+    }
+  }
+  function tick(){
+    const now=performance.now(),dt=Math.min(.1,(now-D.last)/1000);D.last=now;const p=g.player();
+    if(p&&D.kind&&!g.state().paused){
+      D.t-=dt;hud.style.display='block';
+      if(D.kind==='chase'){
+        const c=D.target;
+        if(!c||c.retired){stop('The runner vanished')}
+        else{
+          const dx=c.x-p.x,dz=c.z-p.z,dist=Math.hypot(dx,dz);
+          if(dist<15&&p!==c){D.hold+=dt}else D.hold=Math.max(0,D.hold-dt*.5);
+          // keep the runner moving if it gets boxed in
+          if((c.speed||0)<1.2){D.stuck=(D.stuck||0)+dt;if(D.stuck>5){D.stuck=0;c.x+=Math.sin(c.a)*10;c.z+=Math.cos(c.a)*10}}else D.stuck=0;
+          arrow.visible=true;arrow.position.set(c.x,(c.root?c.root.position.y:gh(c.x,c.z))+5.2+Math.sin(now*.006)*.4,c.z);arrow.rotation.y=now*.004;
+          hud.innerHTML='<b>CHASE</b> '+fmt(D.t)+' &bull; '+Math.round(dist)+' m &bull; hold '+Math.min(3,D.hold).toFixed(1)+'/3 s';
+          if(D.hold>=3){const n=90+Math.round(D.t)*2;coins(n,'caught the runner');c._dare=0;stop();D.done++}
+          else if(D.t<=0){stop('The runner got away');}
+        }
+      }else if(D.kind==='trial'){
+        const q=D.gates[D.gi];
+        if(q){
+          const dx=p.x-q.x,dz=p.z-q.z,dist=Math.hypot(dx,dz);
+          gateMeshes[0].visible=true;gateMeshes[0].position.set(q.x,gh(q.x,q.z)+3,q.z);
+          const nx=D.gates[D.gi+1];gateMeshes[1].visible=!!nx;if(nx)gateMeshes[1].position.set(nx.x,gh(nx.x,nx.z)+3,nx.z);
+          hud.innerHTML='<b>TIME TRIAL</b> '+fmt(D.t)+' &bull; gate '+(D.gi+1)+'/'+D.gates.length+' &bull; '+Math.round(dist)+' m';
+          if(dist<13){D.gi++;D.t+=11;coins(10,'gate '+D.gi);}
+          if(D.gi>=D.gates.length){const n=100+Math.round(D.t)*3;coins(n,'time trial clear');stop();D.done++}
+          else if(D.t<=0)stop('Time is up');
+        }
+      }
+    }
+    drawMaps();
+    requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+  window.__r14dare={D,startChase,startTrial,stop};
+
+  // stunt kickers: a low ramp in the outer lane that launches a fast car, with the game's own jump reward
+  const kick=[];const rm=new T.MeshStandardMaterial({color:'#d9d3b8',roughness:.8}),stripe=new T.MeshStandardMaterial({color:'#e8a32b',emissive:'#a86a00',emissiveIntensity:.35,roughness:.7});
+  const spots=[[-250,0,-9,'x'],[150,-100,9,'x'],[-50,200,-9,'x'],[-250,100,9,'z'],[-150,300,-9,'x'],[250,100,9,'z'],[-150,-200,-9,'z'],[50,-300,9,'x']];
+  // spots: [position along the road, road coordinate, lane offset, axis]
+  for(const [along,road,off,axis] of spots){
+    const L=9,W=6,H=1.1,x=axis==='x'?along:road+off,z=axis==='x'?road+off:along;
+    const geo=new T.BufferGeometry(),hw=W/2,hl=L/2;
+    const v=[-hw,0,-hl, hw,0,-hl, hw,H,-1, -hw,H,-1, -hw,H,1, hw,H,1, hw,0,hl, -hw,0,hl];
+    const idx=[0,2,1,0,3,2, 3,4,5,3,5,2, 4,7,6,4,6,5, 0,7,4,0,4,3, 1,5,6,1,2,5, 0,1,6,0,6,7];
+    geo.setAttribute('position',new T.Float32BufferAttribute(v,3));geo.setIndex(idx);geo.computeVertexNormals();
+    const m=new T.Mesh(geo,rm);m.position.set(x,gh(x,z)+.04,z);if(axis==='z')m.rotation.y=Math.PI/2;m.castShadow=m.receiveShadow=true;scene.add(m);
+    const st=new T.Mesh(new T.BoxGeometry(W-.4,.06,.5),stripe);st.position.set(0,H+.04,0);m.add(st);
+    kick.push({x,z,axis,L,W});
+  }
+  window.__r14kick=kick;
+  function kickOnce(){
+    const p=g.player();
+    if(p&&!(p.airT>0)){
+      for(const k of kick){
+        const dx=p.x-k.x,dz=p.z-k.z,al=k.axis==='x'?dx:dz,lat=k.axis==='x'?dz:dx;
+        if(Math.abs(lat)<k.W/2+.6&&Math.abs(al)<2.5){
+          const v=k.axis==='x'?p.vx:p.vz;if(Math.abs(v)>15){p.airT=.001;p.vy=Math.min(9,3.5+Math.abs(v)*.14);p.airY=gh(p.x,p.z)+.28+.6;break}
+        }
+      }
+    }
+  }
+  function kickTick(){kickOnce();requestAnimationFrame(kickTick)}
+  window.__r14kickNow=kickOnce;
+  requestAnimationFrame(kickTick);
+}catch(e){console.warn('r14 dares',e)}
+
 // ---------- 2. Stats for the audit harness ----------
 window.__r14={rowBuildings:pi};
 }
