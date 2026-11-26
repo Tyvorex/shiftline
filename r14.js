@@ -28,19 +28,25 @@ const roofMat=new T.MeshStandardMaterial({color:'#4a4d4f',roughness:.95});
 const doorMat=new T.MeshStandardMaterial({color:'#2b2118',roughness:.7});
 const awnMats=['#b5433a','#2f6b6a','#d4a437','#3d5a80'].map(c=>new T.MeshStandardMaterial({color:c,roughness:.8}));
 const slab=new T.MeshStandardMaterial({color:'#b7b4a5',roughness:1});
+const acMat=new T.MeshStandardMaterial({color:'#8a9296',roughness:.7});
+// Static parts are baked into one mesh per material, so 24 buildings cost a handful of draw calls instead of ~170.
+const baked=new Map();
+function bakeGroup(grp){let ok=true;grp.updateMatrixWorld(true);grp.traverse(m=>{if(!m.isMesh)return;if(Array.isArray(m.material)){ok=false;return}const g2=m.geometry.clone().applyMatrix4(m.matrixWorld);if(!baked.has(m.material))baked.set(m.material,[]);baked.get(m.material).push(g2)});return ok}
+function flushBaked(){for(const [m,gs] of baked){const merged=g.merge&&g.merge(gs,false);if(merged){const mesh=new T.Mesh(merged,m);mesh.castShadow=true;mesh.receiveShadow=true;scene.add(mesh)}else for(const g2 of gs){const mesh=new T.Mesh(g2,m);mesh.castShadow=true;mesh.receiveShadow=true;scene.add(mesh)}}baked.clear()}
 function rowBuilding(x,z,w,d,h,face,pi){
-  const ground=Math.max(gh(x-w/2,z-d/2),gh(x+w/2,z+d/2),gh(x-w/2,z+d/2),gh(x+w/2,z-d/2))+.28;
+  const cs=[gh(x-w/2,z-d/2),gh(x+w/2,z+d/2),gh(x-w/2,z+d/2),gh(x+w/2,z-d/2),gh(x-w/2,z),gh(x+w/2,z),gh(x,z-d/2),gh(x,z+d/2)];
+  const ground=Math.max(...cs)+.28,lowG=Math.min(...cs)-1.3;
   const grp=new T.Group();grp.position.set(x,ground,z);
-  const m=facMats[pi%facMats.length],sideGeo=new T.BoxGeometry(w,h,d);
-  const uv=sideGeo.attributes.uv,n=sideGeo.attributes.normal;
-  for(let i=0;i<uv.count;i++){const ny=Math.abs(n.getY(i)),nx=Math.abs(n.getX(i));const span=nx>.5?d:w;if(ny>.5){continue}uv.setXY(i,uv.getX(i)*Math.max(1,Math.round(span/4.2)),uv.getY(i)*Math.max(1,Math.round(h/3.6)))}
-  const body=new T.Mesh(sideGeo,[m,m,roofMat,roofMat,m,m]);body.position.y=h/2;body.castShadow=body.receiveShadow=true;grp.add(body);
-  const par=new T.Mesh(new T.BoxGeometry(w+.5,.7,d+.5),roofMat);par.position.y=h+.35;par.castShadow=true;grp.add(par);
-  for(let k=0;k<2;k++){const ac=new T.Mesh(new T.BoxGeometry(2+rnd()*2,1.2,2),new T.MeshStandardMaterial({color:'#8a9296',roughness:.7}));ac.position.set((rnd()-.5)*w*.6,h+1.2,(rnd()-.5)*d*.5);grp.add(ac)}
+  const m=facMats[pi%facMats.length];
+  const wall=(ww,px,pz,ry)=>{const pg=new T.PlaneGeometry(ww,h),uv=pg.attributes.uv;for(let i=0;i<uv.count;i++)uv.setXY(i,uv.getX(i)*Math.max(1,Math.round(ww/4.2)),uv.getY(i)*Math.max(1,Math.round(h/3.6)));const q=new T.Mesh(pg,m);q.position.set(px,h/2,pz);q.rotation.y=ry;grp.add(q)};
+  wall(w,0,d/2,0);wall(w,0,-d/2,Math.PI);wall(d,w/2,0,Math.PI/2);wall(d,-w/2,0,-Math.PI/2);
+  const par=new T.Mesh(new T.BoxGeometry(w+.5,.7,d+.5),roofMat);par.position.y=h+.35;grp.add(par);
+  for(let k=0;k<2;k++){const ac=new T.Mesh(new T.BoxGeometry(2+rnd()*2,1.2,2),acMat);ac.position.set((rnd()-.5)*w*.6,h+1.2,(rnd()-.5)*d*.5);grp.add(ac)}
   const door=new T.Mesh(new T.BoxGeometry(2.4,3,.3),doorMat);door.position.set(0,1.5,face*(d/2+.1));grp.add(door);
-  const awn=new T.Mesh(new T.BoxGeometry(Math.min(w-3,9),.35,1.7),awnMats[pi%awnMats.length]);awn.position.set(0,3.4,face*(d/2+.85));awn.rotation.x=face*.16;awn.castShadow=true;grp.add(awn);
-  const base=new T.Mesh(new T.BoxGeometry(w+.6,.8,d+.6),slab);base.position.y=-.35;grp.add(base);
-  scene.add(grp);statics.push({x,z,hx:w/2,hz:d/2});return grp;
+  const awn=new T.Mesh(new T.BoxGeometry(Math.min(w-3,9),.35,1.7),awnMats[pi%awnMats.length]);awn.position.set(0,3.4,face*(d/2+.85));awn.rotation.x=face*.16;grp.add(awn);
+  const fh=ground-lowG+.05;
+  const base=new T.Mesh(new T.BoxGeometry(w+.7,fh,d+.7),slab);base.position.y=.05-fh/2;grp.add(base);
+  bakeGroup(grp);statics.push({x,z,hx:w/2,hz:d/2});
 }
 const signXs=[-260,-130,0,130,260];
 let pi=0;
@@ -55,6 +61,7 @@ for(const side of [-1,1]){
     }
   }
 }
+flushBaked();
 
 // ---------- 2. Parked cars in the alleys between the row buildings ----------
 try{
@@ -65,12 +72,14 @@ try{
     if(signXs.some(s=>Math.abs(s-col)<8))continue;
     for(const dx of [-3.2,3.2]){
       if(rnd()<.3)continue;
-      const c=pool[(k++)%pool.length],o=c.root.clone(true);
-      o.position.set(col+dx,gh(col+dx,side*326)+.28,side*(322+rnd()*6));o.rotation.set(0,side>0?Math.PI:0,0);
+      const c=pool[(k++)%pool.length],o=c.root.clone(true),zz=side*(322+rnd()*6);
+      o.position.set(col+dx,gh(col+dx,zz)+.28,zz);o.rotation.set(0,side>0?Math.PI:0,0);
       o.traverse(m=>{if(m.isMesh)m.castShadow=true});
-      scene.add(o);statics.push({x:col+dx,z:o.position.z,hx:1.1,hz:2.4});
+      if(!bakeGroup(o))scene.add(o);
+      statics.push({x:col+dx,z:zz,hx:1.1,hz:2.4});
     }
   }
+  flushBaked();
 }catch(e){console.warn('r14 parked cars',e)}
 
 // ---------- 3. Coin pickups along the avenues ----------
@@ -279,10 +288,12 @@ try{
     const v=[-hw,0,-hl, hw,0,-hl, hw,H,-1, -hw,H,-1, -hw,H,1, hw,H,1, hw,0,hl, -hw,0,hl];
     const idx=[0,2,1,0,3,2, 3,4,5,3,5,2, 4,7,6,4,6,5, 0,7,4,0,4,3, 1,5,6,1,2,5, 0,1,6,0,6,7];
     geo.setAttribute('position',new T.Float32BufferAttribute(v,3));geo.setIndex(idx);geo.computeVertexNormals();
-    const m=new T.Mesh(geo,rm);m.position.set(x,gh(x,z)+.04,z);if(axis==='z')m.rotation.y=Math.PI/2;m.castShadow=m.receiveShadow=true;scene.add(m);
+    const m=new T.Mesh(geo,rm);m.position.set(x,gh(x,z)+.04,z);if(axis==='z')m.rotation.y=Math.PI/2;
     const st=new T.Mesh(new T.BoxGeometry(W-.4,.06,.5),stripe);st.position.set(0,H+.04,0);m.add(st);
+    bakeGroup(m);
     kick.push({x,z,axis,L,W});
   }
+  flushBaked();
   window.__r14kick=kick;
   function kickOnce(){
     const p=g.player();
